@@ -5,6 +5,8 @@ description: "Full development lifecycle: design specifications, build software,
 
 # Dev
 
+> *Gradient descent towards the lowest energy point by the path of least resistance.*
+
 Full development lifecycle — design, build, assess, analyze — through coordinated subagents with adaptive process weight and test-driven development.
 
 ## Philosophy
