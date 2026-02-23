@@ -61,6 +61,10 @@ For `--mode stats` (file metrics only) or `--mode deps` (dependency graph only).
 
 For 3+ modules: spawn parallel assessment subagents using Task tool with `subagent_type="general-purpose"`. One subagent per module, no file overlap. Aggregate findings after all complete.
 
+**Agent teams for assessment** (when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is enabled): If the assessment needs parallel reviewers with different focuses — e.g., one on security, one on performance, one on test quality — use agent teams so reviewers can challenge each other's findings and cross-reference issues. Default to subagents; escalate to teams only when cross-focus interaction matters.
+
+**Context rule**: Assessment subagents write full findings to `docs/dev/[session]/`. Return a TL;DR (10-20 lines: severity distribution, top 3 findings, recommended action) to the coordinator.
+
 ---
 
 ## Phase 3: Present

@@ -7,7 +7,7 @@ description: "Full development lifecycle: design specifications, build software,
 
 > *Gradient descent towards the lowest energy point by the path of least resistance.*
 
-Full development lifecycle — design, build, assess, analyze — through coordinated subagents with adaptive process weight and test-driven development.
+Full development lifecycle — design, build, assess, analyze — through coordinated agents with adaptive process weight and test-driven development.
 
 ## Philosophy
 
@@ -44,6 +44,36 @@ These override all other instructions:
 4. **Never silently skip requirements.** Get explicit user approval first.
 5. **If stuck for >3 attempts, STOP.** Report blockers, don't work around silently.
 6. **Never fake results.** Honest failure beats fabricated success.
+7. **Record failures, not just successes.** Document what was tried, what failed, and why. Failures are learning data.
+
+## Context Discipline
+
+Context is finite. Treat it like RAM — conserve it, or the session crashes.
+
+1. **Delegate heavy work.** Research, multi-file reads, and implementation go to subagents or teammates. The coordinator orchestrates.
+2. **Estimate before executing.** Before running commands or reading files, estimate output size. If >50 lines expected, pipe to file and read the summary/tail.
+3. **Subagent-first for reads.** Files >100 lines or multi-file research → spawn a subagent to read and summarize. Coordinator ingests the summary, not raw content.
+4. **Checkpoint on long sessions.** For Heavy-weight builds (3+ phases), write a handoff document between phases. This survives compaction.
+5. **Research returns summaries.** Research subagents write full docs to disk but return a TL;DR (10-20 lines: decisions + key numbers) as their primary output to the coordinator.
+
+## Delegation Model
+
+Two delegation tools, different purposes:
+
+| | Subagents (Task tool) | Agent Teams |
+|---|---|---|
+| **Pattern** | Hub-and-spoke: worker reports back to coordinator | Peer-to-peer: teammates message each other directly |
+| **Best for** | Focused tasks (research, test, implement, verify) | Collaborative work (competing hypotheses, cross-layer builds, multi-reviewer assessment) |
+| **Cost** | Lower (results summarized back) | Higher (each teammate = full Claude instance) |
+| **Use when** | Only the result matters | Teammates need to share findings, challenge each other, or coordinate across modules |
+
+**Default to subagents.** Escalate to agent teams only when:
+- Research needs multiple angles that should *challenge each other's conclusions*
+- Heavy build spans 3+ independent modules that need cross-coordination
+- Assessment needs parallel reviewers with different focuses (security, performance, tests)
+- The user explicitly requests a team
+
+Agent teams require `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. If not enabled, fall back to parallel subagents.
 
 ---
 
@@ -194,6 +224,28 @@ Contracts and research folders appear only when Design mode triggers them.
 2. Create next numbered folder: `NNN+1-[short-description]/`
 3. Update `session-index.md` with date, description, and status
 
+### Session Status (Three States)
+
+| Status | Meaning |
+|--------|---------|
+| **Complete** | All success criteria met with evidence |
+| **Partial** | Some criteria met; document which and why the rest weren't |
+| **Failed** | Stopped; document what was tried, why it failed, what was learned |
+
+### Attempts Log (When Applicable)
+
+If something didn't work on the first try, add to `success-criteria.md`:
+
+```markdown
+## Attempts
+| # | Approach | Result | Failure type | What changed |
+|---|----------|--------|--------------|--------------|
+| 1 | Docker SDK prune API | Failed | Permanent — no age filter support | Switched to CLI |
+| 2 | CLI subprocess wrapper | Succeeded | — | — |
+```
+
+Failure types: **Transient** (timeout, rate limit) or **Permanent** (wrong API, logic error, spec gap). Skip this table when everything works on the first attempt.
+
 ### Handoff Format (When Useful)
 
 ```markdown
@@ -248,3 +300,7 @@ Escalation includes: what was attempted, specific blockers, options (simplify sc
 - Do all tests pass with real output shown?
 - Does every success criterion have evidence?
 - Is the session folder preserving audit trail?
+- **Context**: Did heavy work go to subagents? Did research return summaries, not raw content?
+- **Failures**: Are failed attempts documented with failure type (transient/permanent)?
+- **Delegation**: Was the right tool used (subagents vs agent teams)? Was escalation justified?
+- **Discernment**: After verification, was uncertainty disclosed and a targeted question asked?
