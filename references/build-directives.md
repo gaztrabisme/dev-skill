@@ -4,13 +4,17 @@ How to spawn subagents using the Task tool for feature builds and complex implem
 
 > **When the coordinator works directly**: Wiring, data prep, config, small fixes — subagent overhead exceeds value. Use subagent delegation for feature builds where test separation pays for itself.
 
-## Context Rules
+---
 
-These apply to ALL subagent spawns:
+## Context Management
 
-1. **Estimate output size before running commands.** If >50 lines expected, pipe to file and read summary/tail.
-2. **Subagents write to disk, return summaries.** Full output goes to `docs/dev/[session]/`. The coordinator gets a TL;DR (10-20 lines).
-3. **Checkpoint between phases.** For Heavy-weight builds (3+ phases), write a handoff document between phases. This survives context compaction.
+Verbose commands (builds, installs, compiles) eat context. Use wrapper scripts to keep context clean:
+
+- **Verbose commands** → `bash {baseDir}/scripts/run-command.sh npm install` — full output to log file, JSON summary to stdout
+- **Test runs** → `bash {baseDir}/scripts/run-tests.sh tests/` — auto-detects runner (pytest/jest/go/cargo), returns JSON pass/fail
+- **Quick one-liners** (`mkdir`, `cp`, `mv`) → run directly, wrapper overhead not justified
+
+Both scripts accept optional `--log-dir DIR` to organize logs by session. Without it, logs go to the current directory.
 
 ---
 
@@ -46,7 +50,7 @@ Write tests that verify contract compliance. Tests are executable specifications
 - Use descriptive test names that read as specifications
 - Do NOT read or write implementation code
 - Do NOT mock/stub the system under test
-- Run tests using: bash {baseDir}/scripts/run-tests.sh [test-path]
+- Run tests: bash {baseDir}/scripts/run-tests.sh [test-path]
 ```
 
 **After:** Verify tests parse (expect failures, not errors). Verify coverage of success criteria.
@@ -69,25 +73,14 @@ Write code that passes all tests while matching contracts.
 - All tests MUST pass (no skipping, no modifying tests)
 - Follow existing project patterns
 - Do NOT mock/stub production code or modify success criteria
-- Run tests using: bash {baseDir}/scripts/run-tests.sh [test-path]
+- Run tests: bash {baseDir}/scripts/run-tests.sh [test-path]
+- For verbose commands (builds, installs): bash {baseDir}/scripts/run-command.sh <command>
 - If tests can't be passed, STOP and report why
 - If stuck >3 attempts, STOP and escalate
-- Show actual command output, not summaries
+- On failure, read the log file for details instead of re-running commands
 ```
 
 **After:** Run tests yourself — do NOT trust subagent's reported output. If contract changes proposed, evaluate and either update or escalate.
-
----
-
-## Agent Teams for Heavy Builds
-
-When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is enabled and the build spans 3+ independent modules that need cross-coordination, use agent teams instead of sequential subagents.
-
-**When to escalate**: Modules have shared interfaces, changes in one affect another, or integration testing requires awareness of all modules simultaneously.
-
-**When NOT to escalate**: Modules are truly independent (no shared interfaces), sequential subagents work fine. Default to subagents.
-
-If agent teams are not enabled, fall back to parallel subagents with explicit interface contracts passed to each.
 
 ---
 
@@ -114,12 +107,3 @@ modified success criteria, "it works" without proof.
 
 Output: PASS / FAIL / PARTIAL with evidence for each item.
 ```
-
-### Post-Verification Discernment
-
-After the verification subagent reports PASS, the coordinator surfaces uncertainty before closing the phase:
-
-1. **Uncertainty disclosure** — State what the verification did NOT cover (dynamic behavior, edge cases untested, assumptions made).
-2. **Targeted question** — Ask the user ONE specific question about the area of highest uncertainty. Not "does this look good?" but "The tests don't cover [X scenario] — is that acceptable, or should we add coverage?"
-
-This counters the artifact blindspot: polished output kills scrutiny. A single well-placed question restores it.

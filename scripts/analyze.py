@@ -658,18 +658,87 @@ def analyze_directory_deps(directory: str) -> Dict:
 
 
 # ──────────────────────────────────────────────
+# Summary Mode (Context-Friendly Overview)
+# ──────────────────────────────────────────────
+
+def build_summary(directory: str) -> Dict:
+    """Build a compact summary — only flags and actionable items.
+
+    Outputs: file count, total lines, language breakdown, files over 500 lines,
+    circular deps, orphan modules, hotspots. Skips full file list, dependency
+    graph, and directory tree to keep output small enough for context windows.
+    """
+    project_root = Path(directory).resolve()
+    if not project_root.exists():
+        return {'error': f'Directory not found: {directory}'}
+
+    result: Dict = {'directory': str(project_root)}
+
+    # Stats summary
+    stats = analyze_directory_stats(directory)
+    if 'error' in stats:
+        result['stats'] = {'note': stats['error']}
+    else:
+        result['overview'] = stats['summary']
+        result['languages'] = stats['by_language']
+        if stats['files_over_500_count'] > 0:
+            top_20 = stats['files_over_500_lines'][:20]
+            result['large_files'] = {
+                'total_count': stats['files_over_500_count'],
+                'showing_top': len(top_20),
+                'files': top_20
+            }
+
+    # Deps summary (flags only)
+    deps = analyze_directory_deps(directory)
+    if 'error' in deps:
+        result['deps'] = {'note': deps.get('error', 'No Python files for dependency analysis')}
+    else:
+        flags: Dict = {}
+        analysis = deps.get('analysis', {})
+        circular = analysis.get('circular_dependencies', [])
+        orphans = analysis.get('orphan_modules', [])
+        hotspots = analysis.get('hotspots', [])
+
+        if circular:
+            flags['circular_dependencies'] = circular
+        if orphans:
+            flags['orphan_modules'] = {
+                'total_count': len(orphans),
+                'showing': orphans[:30]
+            }
+        if hotspots:
+            flags['hotspots'] = [
+                {'module': h['module'], 'imported_by': h['imported_by_count']}
+                for h in hotspots
+            ]
+        ext_deps = deps.get('external_dependencies', [])
+        flags['external_dependencies'] = {
+            'total_count': len(ext_deps),
+            'list': ext_deps[:30]
+        }
+
+        if flags:
+            result['flags'] = flags
+
+    return result
+
+
+# ──────────────────────────────────────────────
 # Main Entry Point
 # ──────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze codebase structure and dependencies')
     parser.add_argument('directory', nargs='?', default='.', help='Directory to analyze')
-    parser.add_argument('--mode', choices=['stats', 'deps', 'full'], default='full',
-                        help='Analysis mode: stats (file metrics), deps (dependency graph), full (both)')
+    parser.add_argument('--mode', choices=['stats', 'deps', 'full', 'summary'], default='full',
+                        help='Analysis mode: stats, deps, full, or summary (context-friendly overview)')
 
     args = parser.parse_args()
 
-    if args.mode == 'stats':
+    if args.mode == 'summary':
+        result = build_summary(args.directory)
+    elif args.mode == 'stats':
         result = analyze_directory_stats(args.directory)
     elif args.mode == 'deps':
         result = analyze_directory_deps(args.directory)

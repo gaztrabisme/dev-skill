@@ -56,15 +56,12 @@ YOU are the coordinator. Spawn research subagents using the Task tool for indepe
 
 All research subagents: save output to `docs/dev/[session]/research/`. Present options with tradeoffs — do NOT make final decisions.
 
-**Agent teams for research** (when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is enabled): If research needs multiple angles that should *challenge each other's conclusions* — e.g., evaluating competing architectures where pros/cons interact — use agent teams instead of parallel subagents. Teammates can message each other to reconcile conflicting findings before reporting back. Default to subagents; escalate to teams only when cross-challenge matters.
-
 ### Coordination Rules
 
 1. **Parallel when independent** — launch multiple researchers simultaneously
 2. **Sequential when dependent** — domain understanding may redirect technical research
 3. **Loop back on pivots** — any finding that changes direction goes to user first
 4. **Compress before integrating** — key facts, not narratives
-5. **TL;DR to coordinator** — research subagents write full docs to disk but return a 10-20 line summary (decisions + key numbers) as their primary output. The coordinator ingests the summary, not raw content.
 
 ### The Loop-Back Rule
 

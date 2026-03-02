@@ -30,8 +30,9 @@ Or add it as a git submodule in your project's `.claude/skills/` folder.
 │   ├── build-directives.md           # Subagent invocation patterns
 │   └── assessment-workflow.md        # Assess + Analyze workflows
 └── scripts/
-    ├── analyze.py                    # Static analysis script
-    └── run-tests.sh                  # Test runner
+    ├── analyze.py                    # Static analysis (--mode summary for context-friendly output)
+    ├── run-command.sh                # Universal command wrapper (log to file, JSON summary to stdout)
+    └── run-tests.sh                  # Multi-runner test wrapper (pytest/jest/go/cargo)
 ```
 
 ## License

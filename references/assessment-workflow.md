@@ -38,12 +38,16 @@ YES -> Investigate    NO -> Skip
 
 ## Phase 2: Scan
 
-Run the analysis script:
+Run the analysis script. Start with `summary` for a context-friendly overview, then drill into `full` only if needed:
 ```bash
-python3 {baseDir}/scripts/analyze.py --mode full [scope]
+# Context-friendly overview (flags and actionable items only)
+python3 {baseDir}/scripts/analyze.py --mode summary [scope]
+
+# Full detail when investigating specific findings (redirect to file, read on-demand)
+python3 {baseDir}/scripts/analyze.py --mode full [scope] > docs/dev/[session]/analysis-full.json
 ```
 
-For `--mode stats` (file metrics only) or `--mode deps` (dependency graph only).
+Other modes: `--mode stats` (file metrics only), `--mode deps` (dependency graph only).
 
 **Important**: Script output is a guide, not ground truth. Dynamic imports, plugin systems, and external consumers are invisible to static analysis.
 
@@ -60,10 +64,6 @@ For `--mode stats` (file metrics only) or `--mode deps` (dependency graph only).
 ### Subagent Deployment (Large Codebases)
 
 For 3+ modules: spawn parallel assessment subagents using Task tool with `subagent_type="general-purpose"`. One subagent per module, no file overlap. Aggregate findings after all complete.
-
-**Agent teams for assessment** (when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is enabled): If the assessment needs parallel reviewers with different focuses — e.g., one on security, one on performance, one on test quality — use agent teams so reviewers can challenge each other's findings and cross-reference issues. Default to subagents; escalate to teams only when cross-focus interaction matters.
-
-**Context rule**: Assessment subagents write full findings to `docs/dev/[session]/`. Return a TL;DR (10-20 lines: severity distribution, top 3 findings, recommended action) to the coordinator.
 
 ---
 
