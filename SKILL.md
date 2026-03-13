@@ -91,6 +91,8 @@ Read `references/design-workflow.md` for full workflow. Overview:
 2. **Research** — Calibrate depth, deploy research subagents, loop-back on pivots
 3. **Document & Handoff** — Scale docs to project size, transition to Build mode
 
+**Minimum content**: Every Design session must produce at least a `success-criteria.md` with a "Done When" section, even if just 2-3 items (e.g., "architecture documented", "user approved direction"). Empty session folders are not acceptable.
+
 ---
 
 ## Build Mode
@@ -129,7 +131,7 @@ Read `references/build-directives.md` for subagent invocation patterns. Overview
 - **Feature builds → subagents** (test separation pays for itself)
 - **Wiring, data prep, config, small fixes → coordinator works directly**
 - **Verbose commands** (builds, installs) → wrap with `bash {baseDir}/scripts/run-command.sh <command>` to keep context clean
-- **Test runs** → `bash {baseDir}/scripts/run-tests.sh [test-path]` for structured JSON results
+- **Test runs** → **always** use `bash {baseDir}/scripts/run-tests.sh --log-dir docs/dev/NNN-[session]/logs [test-path]` — this captures evidence automatically, whether you run tests directly or via subagent
 
 For subagent builds: Spawn TEST subagent → Verify tests parse → Spawn IMPLEMENTATION subagent → Run tests → Spawn VERIFICATION subagent.
 
@@ -197,6 +199,36 @@ Contracts and research folders appear only when Design mode triggers them.
 1. Scan for existing `docs/dev/NNN-*/` folders
 2. Create next numbered folder: `NNN+1-[short-description]/`
 3. Update `session-index.md` with date, description, and status
+
+### Session Status Values
+
+| Status | Meaning |
+|--------|---------|
+| **Complete** | All success criteria checked with evidence |
+| **Partial** | Some criteria met, remainder documented as deferred with reason |
+| **Active** | Work in progress (current session) |
+| **Abandoned** | Started but superseded or blocked — note why in session-index |
+
+**Never mark "Complete" with unchecked success criteria.** If criteria can't be met, either mark "Partial" with explanation or "Abandoned" if moving on entirely.
+
+### Tiered Evidence Requirements
+
+Match evidence effort to task weight — not every session needs full logs:
+
+| Weight | Evidence Required |
+|--------|-------------------|
+| **Light** (bug fix, config, wiring) | Pass/fail count + 1-line summary per criterion in success-criteria.md |
+| **Medium** (feature, refactor) | `run-tests.sh` JSON in `logs/` + checked criteria with evidence |
+| **Heavy** (training, multi-phase, greenfield) | Full `logs/` directory + report.md + checked criteria with evidence |
+
+The minimum for any session: success-criteria.md with every checkbox either checked (with evidence) or explicitly marked `[~]` (deferred) or `[x] N/A` with reason.
+
+### Completion Gate
+
+**Before updating session-index.md status to "Complete", verify:**
+1. Every success criterion is checked with evidence, marked N/A, or deferred with reason
+2. If tests were run, output was captured via `run-tests.sh` (even light sessions get pass/fail counts)
+3. session-index.md status matches actual state — not aspirational
 
 ### Handoff Format (When Useful)
 

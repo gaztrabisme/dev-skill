@@ -11,7 +11,7 @@ How to spawn subagents using the Task tool for feature builds and complex implem
 Verbose commands (builds, installs, compiles) eat context. Use wrapper scripts to keep context clean:
 
 - **Verbose commands** → `bash {baseDir}/scripts/run-command.sh npm install` — full output to log file, JSON summary to stdout
-- **Test runs** → `bash {baseDir}/scripts/run-tests.sh tests/` — auto-detects runner (pytest/jest/go/cargo), returns JSON pass/fail
+- **Test runs** → **always** `bash {baseDir}/scripts/run-tests.sh --log-dir docs/dev/NNN-[session]/logs tests/` — auto-detects runner, returns JSON pass/fail, captures evidence automatically. Use this whether you are the coordinator or instructing a subagent.
 - **Quick one-liners** (`mkdir`, `cp`, `mv`) → run directly, wrapper overhead not justified
 
 Both scripts accept optional `--log-dir DIR` to organize logs by session. Without it, logs go to the current directory.
