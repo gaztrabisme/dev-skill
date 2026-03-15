@@ -44,30 +44,11 @@ YOU are the coordinator. Spawn research subagents using the Task tool for indepe
 
 **Parallel** when topics are independent. **Sequential** when findings would redirect later research.
 
-#### Subagent Types
-
-| Type | When | `subagent_type` | Key prompt elements |
-|------|------|-----------------|---------------------|
-| **Technical** | Evaluating frameworks, libraries, APIs | `general-purpose` | Mainstream options, tradeoffs, production patterns. Focus on proven, maintained solutions. |
-| **Domain** | Unfamiliar problem space or industry | `general-purpose` | Terminology, workflows, regulations, pain points. Cite sources for regulatory claims. |
-| **Competitive** | Building in a space with existing solutions | `general-purpose` | Competitors, feature gaps, differentiation. If existing solution handles 80%+ → loop back to user. |
-| **Local Context** | Existing codebase needs understanding | `Explore` | Structure, conventions, reusable components, integration points. Match existing style. |
-| **Feasibility** | Uncertain if achievable given constraints | `general-purpose` | Verdict (Yes/Caveats/Uncertain/No), evidence, blockers, alternatives. |
-
-All research subagents: save output to `docs/dev/[session]/research/`. Present options with tradeoffs — do NOT make final decisions.
-
-### Coordination Rules
-
-1. **Parallel when independent** — launch multiple researchers simultaneously
-2. **Sequential when dependent** — domain understanding may redirect technical research
-3. **Loop back on pivots** — any finding that changes direction goes to user first
-4. **Compress before integrating** — key facts, not narratives
+Each subagent gets a specific question (not "research everything about X"), saves findings to `docs/dev/research/`, and presents options with tradeoffs — no final decisions. Use `subagent_type: general-purpose` (or `Explore` for existing codebase investigation).
 
 ### The Loop-Back Rule
 
-If research reveals insights that could change direction: STOP → SURFACE to user → DISCUSS → DECIDE together.
-
-Triggers: better alternative found, significant constraint, compliance requirement, scope much larger than expected, user assumption contradicted.
+If research reveals something that could change direction (better alternative, significant constraint, scope much larger than expected): STOP and surface to user before continuing.
 
 ---
 

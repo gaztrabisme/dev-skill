@@ -101,7 +101,7 @@ For data-driven investigation: "why do results look like this?", "root cause ana
 
 This mode asks "what's wrong with the *results*?" vs Assess which asks "what's wrong with the *code*?"
 
-### Pattern (from session 004)
+### Pattern
 
 1. **Root Cause Taxonomy** — Categorize failure modes. What types of errors exist? What's their distribution?
 2. **Causal Model** — Map cause → effect chains. What produces each failure type?

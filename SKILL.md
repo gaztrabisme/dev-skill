@@ -5,22 +5,12 @@ description: "Full development lifecycle: design specifications, build software,
 
 # Dev
 
-> *Gradient descent towards the lowest energy point by the path of least resistance.*
+Full development lifecycle — design, build, assess, analyze — through coordinated subagents with test-driven development.
 
-Full development lifecycle — design, build, assess, analyze — through coordinated subagents with adaptive process weight and test-driven development.
+## Principles
 
-## Philosophy
-
-- **Elegant** — Simple solutions over clever ones
-- **Clean** — Readable, well-structured code
-- **Lean** — No unnecessary complexity
-- **Path of least resistance** — Proven approaches over experiments
-
-### Gradient Descent Principle
-
-- **Start light.** Don't front-load ceremony. Add structure only when its absence causes failures.
-- **Adapt step size.** Small tasks get minimal process. Large tasks get more — but only what coordination requires.
-- **Contracts are coordination tools, not bureaucracy.** Keep them minimal and refinable.
+- **Elegant, Clean, Lean.** Simple over clever. Readable. No unnecessary complexity.
+- **Start light, adapt.** Add structure only when its absence causes failures. Small tasks get minimal process.
 - **Research is reactive.** Spawn research when unknowns surface, not as a mandatory pre-phase.
 
 ### Wu Wei Filter
@@ -69,18 +59,6 @@ Analyze results/root cause: [TOPIC]    → Analyze mode
 | Assessment findings → "harden", "fix findings" | **Harden** | Build mode with assessment findings as input |
 | "Ingest", "convert", "prepare data", "wire up", "configure" | **Wire/Prep** | Coordinator works directly, no subagents |
 
-### Task Type Matrix
-
-| Type | Scope | Align | Build | Verify |
-|------|-------|-------|-------|--------|
-| Design | Clarify intent | Research → Document | N/A (hands off to build) | Fresh developer test |
-| Feature build | Detect patterns | Success criteria + contracts if greenfield | Test-first subagents | Verification subagent |
-| Bug fix | Reproduce | Done-when only | Direct or subagent | Run tests |
-| Wiring/prep | Identify scope | Light or skip | Coordinator direct | Manual + run tests |
-| Assessment | Scope + Wu Wei filter | Run analyze.py | Present findings | User decides |
-| Analysis | Define questions | Root cause taxonomy | Causal model + experiments | Before/after data |
-| Hardening | Group by severity | Phased success criteria | Test-first subagents | Full regression suite |
-
 ---
 
 ## Design Mode
@@ -90,8 +68,6 @@ Read `references/design-workflow.md` for full workflow. Overview:
 1. **Clarify Intent** — Understand what, who, why, constraints, scope
 2. **Research** — Calibrate depth, deploy research subagents, loop-back on pivots
 3. **Document & Handoff** — Scale docs to project size, transition to Build mode
-
-**Minimum content**: Every Design session must produce at least a `success-criteria.md` with a "Done When" section, even if just 2-3 items (e.g., "architecture documented", "user approved direction"). Empty session folders are not acceptable.
 
 ---
 
@@ -170,83 +146,17 @@ Analyze often chains into Build (implement the top-ranked fix) or further Analyz
 
 ---
 
-## Progressive Documentation
+## Evidence
 
-### Session Convention
+Match effort to task weight:
 
-Each invocation creates a numbered session folder. Previous sessions are preserved — never overwritten.
+| Weight | Evidence |
+|--------|----------|
+| **Light** (bug fix, config, wiring) | Pass/fail count + 1-line summary per criterion |
+| **Medium** (feature, refactor) | `run-tests.sh` JSON in `logs/` + checked criteria |
+| **Heavy** (multi-phase, greenfield) | Full `logs/` directory + report.md + checked criteria |
 
-```
-docs/dev/
-├── session-index.md              # One-line summary per session
-├── 001-initial-build/
-│   ├── success-criteria.md       # Required
-│   ├── logs/                     # Command & test output (full detail, read on-demand)
-│   └── handoffs/phase-1.md       # When useful
-├── 002-add-feature/
-│   ├── success-criteria.md
-│   └── logs/
-├── 003-assessment/
-│   └── report.md
-├── 004-analysis-topic/
-│   ├── success-criteria.md
-│   └── analysis.md
-```
-
-Contracts and research folders appear only when Design mode triggers them.
-
-**On session start:**
-1. Scan for existing `docs/dev/NNN-*/` folders
-2. Create next numbered folder: `NNN+1-[short-description]/`
-3. Update `session-index.md` with date, description, and status
-
-### Session Status Values
-
-| Status | Meaning |
-|--------|---------|
-| **Complete** | All success criteria checked with evidence |
-| **Partial** | Some criteria met, remainder documented as deferred with reason |
-| **Active** | Work in progress (current session) |
-| **Abandoned** | Started but superseded or blocked — note why in session-index |
-
-**Never mark "Complete" with unchecked success criteria.** If criteria can't be met, either mark "Partial" with explanation or "Abandoned" if moving on entirely.
-
-### Tiered Evidence Requirements
-
-Match evidence effort to task weight — not every session needs full logs:
-
-| Weight | Evidence Required |
-|--------|-------------------|
-| **Light** (bug fix, config, wiring) | Pass/fail count + 1-line summary per criterion in success-criteria.md |
-| **Medium** (feature, refactor) | `run-tests.sh` JSON in `logs/` + checked criteria with evidence |
-| **Heavy** (training, multi-phase, greenfield) | Full `logs/` directory + report.md + checked criteria with evidence |
-
-The minimum for any session: success-criteria.md with every checkbox either checked (with evidence) or explicitly marked `[~]` (deferred) or `[x] N/A` with reason.
-
-### Completion Gate
-
-**Before updating session-index.md status to "Complete", verify:**
-1. Every success criterion is checked with evidence, marked N/A, or deferred with reason
-2. If tests were run, output was captured via `run-tests.sh` (even light sessions get pass/fail counts)
-3. session-index.md status matches actual state — not aspirational
-
-### Handoff Format (When Useful)
-
-```markdown
-## Delivered
-[Files table: file | lines | purpose/changes]
-
-## Test Evidence
-[Command + summary — cumulative count, zero regressions]
-
-## Key Decisions
-[Numbered, with rationale]
-
-## What Next Session Needs To Know
-[Exact imports, constructor signatures, interface details]
-```
-
-Skip handoff when context is obvious or session is self-contained.
+Minimum: every success criterion either checked with evidence, deferred with reason, or marked N/A.
 
 ---
 
