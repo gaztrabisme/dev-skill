@@ -68,18 +68,20 @@ Analyze results/root cause: [TOPIC]    → Analyze mode
 | "Analyze", "root cause", "why does X fail", "evaluate results" | **Analyze** | `references/assessment-workflow.md` (Analyze section) |
 | Assessment findings → "harden", "fix findings" | **Harden** | Build mode with assessment findings as input |
 | "Ingest", "convert", "prepare data", "wire up", "configure" | **Wire/Prep** | Coordinator works directly, no subagents |
+| "Evolve", "meta", "improve the skill", "self-improve" | **Evolve** | `references/evolve-workflow.md` |
 
 ### Task Type Matrix
 
 | Type | Scope | Align | Build | Verify |
 |------|-------|-------|-------|--------|
-| Design | Clarify intent | Research → Document | N/A (hands off to build) | Fresh developer test |
+| Design | Clarify intent | Research → Document | N/A (hands off to build) | Spec adversarial review + exit gate |
 | Feature build | Detect patterns | Success criteria + contracts if greenfield | Test-first subagents | Verification subagent |
 | Bug fix | Reproduce | Done-when only | Direct or subagent | Run tests |
 | Wiring/prep | Identify scope | Light or skip | Coordinator direct | Manual + run tests |
 | Assessment | Scope + Wu Wei filter | Run analyze.py | Present findings | User decides |
 | Analysis | Define questions | Root cause taxonomy | Causal model + experiments | Before/after data |
 | Hardening | Group by severity | Phased success criteria | Test-first subagents | Full regression suite |
+| Evolve | Collect traces since last evolve | Pattern analysis | Apply improvements | Before/after trace comparison |
 
 ---
 
@@ -89,9 +91,9 @@ Read `references/design-workflow.md` for full workflow. Overview:
 
 1. **Clarify Intent** — Understand what, who, why, constraints, scope
 2. **Research** — Calibrate depth, deploy research subagents, loop-back on pivots
-3. **Document & Handoff** — Scale docs to project size, transition to Build mode
-
-**Minimum content**: Every Design session must produce at least a `success-criteria.md` with a "Done When" section, even if just 2-3 items (e.g., "architecture documented", "user approved direction"). Empty session folders are not acceptable.
+3. **Document** — Scale docs to project size
+4. **Spec Adversarial Review** — Cold review of spec by subagent with no discussion context. Catches untestable criteria, missing edge cases, contradictions, over/under-engineering. CRITICAL findings must resolve before handoff. Skip for light builds.
+5. **Handoff** — Exit gate: all criteria binary+testable, unknowns named, no unresolved CRITICALs, spec is stranger-readable. Transition to Build mode.
 
 ---
 
@@ -116,11 +118,17 @@ Read `references/build-directives.md` for subagent invocation patterns. Overview
 ## Done When
 - [ ] GET /users returns 200 with JSON array
 - [ ] All tests pass with 0 failures
+
+## Contract Changelog
+<!-- Append entries here if contracts change during build -->
+<!-- Format: - [PHASE-N] Changed: X → Y. Reason: Z. Approved by: user/coordinator. -->
 ```
 
 **Greenfield builds** without existing code → create data schemas and API contracts as refinable coordination tools. Claude generates these from architecture docs — no template needed.
 
 **Extending existing code** → the codebase IS the contract. Read it, don't re-specify it.
+
+**Test naming convention:** Tests trace back to contracts/criteria via their names: `test_<contract_clause>_<behavior>` (e.g., `test_api_get_users_returns_json_array`). When a test fails, the name tells you which requirement broke.
 
 **STOP for user approval before building.**
 
@@ -131,15 +139,23 @@ Read `references/build-directives.md` for subagent invocation patterns. Overview
 - **Feature builds → subagents** (test separation pays for itself)
 - **Wiring, data prep, config, small fixes → coordinator works directly**
 - **Verbose commands** (builds, installs) → wrap with `bash {baseDir}/scripts/run-command.sh <command>` to keep context clean
-- **Test runs** → **always** use `bash {baseDir}/scripts/run-tests.sh --log-dir docs/dev/NNN-[session]/logs [test-path]` — this captures evidence automatically, whether you run tests directly or via subagent
+- **Test runs** → `bash {baseDir}/scripts/run-tests.sh [test-path]` for structured JSON results
 
-For subagent builds: Spawn TEST subagent → Verify tests parse → Spawn IMPLEMENTATION subagent → Run tests → Spawn VERIFICATION subagent.
+For subagent builds: Spawn TEST subagent → Verify tests parse → Spawn IMPLEMENTATION subagent → Run tests → Spawn VERIFICATION subagent → Spawn ADVERSARIAL REVIEW subagent (medium/heavy only).
 
 ### Phase 4: Verify
 
-Verification subagent covers: tests pass, contracts met, no mocked production code, security scan, success criteria evidence.
+Verification subagent covers: tests pass, **code quality scan** (ruff + bandit + pyright via `run-quality.sh`), contracts met, no mocked production code, **ai-slop-detector**, success criteria evidence.
 
-**Red flags (auto-fail):** Mocked production code, tests testing mocks, modified success criteria, "it works" without proof.
+**Red flags (auto-fail):** Mocked production code, tests testing mocks, modified success criteria, "it works" without proof, lint errors, HIGH/CRITICAL security findings.
+
+### Phase 5: Adversarial Review (medium/heavy builds)
+
+A separate subagent reviews the code **cold** — no planning context, no contracts, no rationale. It reads the code like a new developer joining the project. Catches logic bugs, over-engineering, and correlated blind spots that verification misses.
+
+- **CRITICAL findings** → must fix before delivery
+- **3+ CRITICAL** → systemic problem, STOP and escalate to user
+- **Skip for**: light-weight tasks (small fixes, config, wiring)
 
 ---
 
@@ -167,6 +183,22 @@ For data-driven investigation — "why do results look like this?", root cause a
 5. **Projected Impact** — Expected improvement per intervention
 
 Analyze often chains into Build (implement the top-ranked fix) or further Analyze (validate the fix).
+
+---
+
+## Evolve Mode
+
+Read `references/evolve-workflow.md` for full workflow. Overview:
+
+The skill improves itself by analyzing its own traces. This is meta-prompting: the same structured process that builds software is turned inward on the skill's own prompts, workflows, and conventions.
+
+1. **Harvest** — Collect traces since last evolution: session docs, contract changelogs, quality reports, adversarial findings, failure escalations, git history of skill files
+2. **Pattern** — Classify recurring signals: what keeps failing? what gets caught late? what ceremony gets skipped? what contract changes repeat?
+3. **Hypothesize** — Propose specific skill modifications with predicted effect
+4. **Apply** — Modify skill files (prompts, workflows, conventions) through the skill's own build process
+5. **Validate** — Run the evolved skill on a real project, compare trace quality before/after
+
+Quality of self-improvement = quality of traces. Every structured output (test names, contract changelogs, quality JSON, adversarial findings) is a signal the evolve loop can learn from.
 
 ---
 
@@ -199,36 +231,6 @@ Contracts and research folders appear only when Design mode triggers them.
 1. Scan for existing `docs/dev/NNN-*/` folders
 2. Create next numbered folder: `NNN+1-[short-description]/`
 3. Update `session-index.md` with date, description, and status
-
-### Session Status Values
-
-| Status | Meaning |
-|--------|---------|
-| **Complete** | All success criteria checked with evidence |
-| **Partial** | Some criteria met, remainder documented as deferred with reason |
-| **Active** | Work in progress (current session) |
-| **Abandoned** | Started but superseded or blocked — note why in session-index |
-
-**Never mark "Complete" with unchecked success criteria.** If criteria can't be met, either mark "Partial" with explanation or "Abandoned" if moving on entirely.
-
-### Tiered Evidence Requirements
-
-Match evidence effort to task weight — not every session needs full logs:
-
-| Weight | Evidence Required |
-|--------|-------------------|
-| **Light** (bug fix, config, wiring) | Pass/fail count + 1-line summary per criterion in success-criteria.md |
-| **Medium** (feature, refactor) | `run-tests.sh` JSON in `logs/` + checked criteria with evidence |
-| **Heavy** (training, multi-phase, greenfield) | Full `logs/` directory + report.md + checked criteria with evidence |
-
-The minimum for any session: success-criteria.md with every checkbox either checked (with evidence) or explicitly marked `[~]` (deferred) or `[x] N/A` with reason.
-
-### Completion Gate
-
-**Before updating session-index.md status to "Complete", verify:**
-1. Every success criterion is checked with evidence, marked N/A, or deferred with reason
-2. If tests were run, output was captured via `run-tests.sh` (even light sessions get pass/fail counts)
-3. session-index.md status matches actual state — not aspirational
 
 ### Handoff Format (When Useful)
 
