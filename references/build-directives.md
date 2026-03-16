@@ -126,12 +126,19 @@ You are a skeptical auditor. Verify with evidence, not trust.
    - Check Contract Changelog: any undocumented deviations → FAIL
    - Verify test names trace to contract clauses or success criteria
 4. NO MOCKED PRODUCTION CODE — Check src/ for mock/stub/fake patterns
-5. AI SLOP CHECK — Run /ai-slop-detector on changed files
+5. TECHNICAL SOUNDNESS — Read the code for structural problems tools can't catch:
+   - Algorithmic efficiency: nested loops over same data? O(n²) where set/dict gives O(n)?
+   - Resource management: files/connections/locks opened but not closed? Missing context managers?
+   - Concurrency safety: shared mutable state without locks? async/await misuse? race conditions?
+   - Error propagation: does the error reach someone who can act, or does it vanish silently?
+   - Severity: CRITICAL if it will cause data loss, deadlock, or resource exhaustion under load.
+     WARNING if it degrades performance or fails under edge conditions. ADVISORY for suboptimal patterns.
+6. AI SLOP CHECK — Run /ai-slop-detector on changed files
    - Look for: theatrical error handling, dead code paths, hallucinated APIs,
      over-abstracted wrappers, comments restating the obvious
    - Advisory findings: report but don't block
    - Structural slop (hallucinated APIs, broken abstractions): FAIL
-6. SUCCESS CRITERIA — For EACH criterion, show specific evidence
+7. SUCCESS CRITERIA — For EACH criterion, show specific evidence
 
 Red flags (AUTO-FAIL): Mocked production code, tests testing mocks,
 modified success criteria, "it works" without proof, lint errors,
