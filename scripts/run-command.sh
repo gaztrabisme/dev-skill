@@ -9,7 +9,7 @@
 #   --log-dir DIR    Directory for log files (default: current directory)
 #
 # Examples:
-#   bash {baseDir}/scripts/run-command.sh --label "npm-install" --log-dir docs/dev/001/logs -- npm install
+#   bash {baseDir}/scripts/run-command.sh --label "npm-install" --log-dir logs -- npm install
 #   bash {baseDir}/scripts/run-command.sh --label "build" --log-dir logs -- cargo build --release
 #   bash {baseDir}/scripts/run-command.sh -- python setup.py install
 #

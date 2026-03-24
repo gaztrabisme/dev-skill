@@ -10,7 +10,7 @@
 #
 # Examples:
 #   bash {baseDir}/scripts/run-tests.sh tests/
-#   bash {baseDir}/scripts/run-tests.sh --log-dir docs/dev/001/logs tests/test_api.py
+#   bash {baseDir}/scripts/run-tests.sh --log-dir logs tests/test_api.py
 #   bash {baseDir}/scripts/run-tests.sh --runner jest -- --coverage
 #   bash {baseDir}/scripts/run-tests.sh --runner go ./...
 #
