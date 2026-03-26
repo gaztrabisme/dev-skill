@@ -37,6 +37,30 @@ These override all other instructions:
 
 ---
 
+## Work Tracking (Compulsory)
+
+Every dev session operates within a persistent work graph at `.tracks/` in the project root. This is NOT optional — it prevents context loss across sessions and workstreams.
+
+**On entry (EVERY invocation):**
+1. If no `.tracks/` exists → initialize: `python3 {baseDir}/scripts/generate-map.py --init <project-root>`. Ask user to name the first workstream.
+2. Read `.tracks/index.md` to understand the full landscape.
+3. Identify which node this task belongs to. If none fits, create a new node file in `.tracks/nodes/`.
+4. Read the active node file. Brief the user: current status, last breadcrumbs, queued ideas.
+
+**During work:**
+- Log significant findings, failed attempts, and decisions as breadcrumbs in the active node.
+- Update the Ideas checklist as hypotheses are tested (`- [x] result`).
+- Update the `updated` date in frontmatter on any edit.
+
+**On completion or context switch:**
+- Update the node: status, next steps, new breadcrumbs.
+- Regenerate: `python3 {baseDir}/scripts/generate-map.py <project-root>`
+- Tell the user: "Graph updated — open `.tracks/map.html` to see the full picture."
+
+Read `references/tracking.md` for node format, status transitions, and granularity guidelines.
+
+---
+
 ## Quick Start
 
 ```
@@ -250,6 +274,20 @@ Escalation includes: what was attempted, specific blockers, options (simplify sc
 - Exploratory prototyping (use direct coding)
 - One-line fixes with obvious solutions
 - Pure research without implementation goal
+
+## Scripts
+
+All scripts output JSON summaries to stdout, full logs to files.
+
+| Script | Purpose |
+|--------|---------|
+| `run-tests.sh [path]` | Auto-detects runner (pytest/jest/go/cargo), returns pass/fail JSON |
+| `run-quality.sh [path]` | Runs ruff + bandit + pyright, returns lint/security/types JSON |
+| `run-command.sh -- <cmd>` | Wraps verbose commands, keeps context clean |
+| `analyze.py --mode summary [path]` | Codebase stats, deps, flags (context-friendly) |
+| `generate-map.py [--init] <root>` | Regenerates `.tracks/index.md` + `map.html` from node files |
+
+Options: `--log-dir DIR` for organized logs, `--runner RUNNER` to force test runner.
 
 ---
 
