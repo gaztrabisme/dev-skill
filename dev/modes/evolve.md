@@ -1,6 +1,6 @@
-# Evolve Workflow
+# Evolve Mode
 
-Turn the skill's own traces into improvement signals. This is meta-prompting: the skill improves itself using the same structured process it uses to build software.
+Turn the skill's own traces into improvement signals. Meta-prompting: the skill improves itself using the same structured process it uses to build software.
 
 > **Core principle:** Self-improvement quality = trace quality. Every contract changelog, test name, quality report, and adversarial finding is a signal. Poor traces → blind evolution. Rich traces → targeted evolution.
 
@@ -13,7 +13,7 @@ Turn the skill's own traces into improvement signals. This is meta-prompting: th
 | User says "evolve", "meta", "improve the skill" | Run full evolve cycle |
 | After 5+ builds on different projects | Suggest evolve (enough data to find patterns) |
 | Repeated failure pattern across builds | Targeted evolve on that specific phase |
-| After significant skill changes (like adding adversarial review) | Validation evolve (does the change work?) |
+| After significant skill changes | Validation evolve (does the change work?) |
 
 **When NOT to evolve:** After a single build (not enough signal), mid-build (finish first), when traces are sparse (nothing to learn from).
 
@@ -28,18 +28,18 @@ Collect all traces since the last evolution (or since a given date/commit).
 | Source | What to extract | How |
 |--------|----------------|-----|
 | **Git history** | Commits, diffs, commit messages | `git log --since="LAST_EVOLVE_DATE"` across project repos |
-| **Contract changelogs** | `## Contract Changelog` sections in success-criteria files | What contracts changed mid-build and why — these are specification failures |
+| **Contract changelogs** | `## Contract Changelog` sections | What contracts changed mid-build and why — specification failures |
 | **Quality reports** | `logs/quality.log` | Recurring lint/security/type patterns |
-| **Adversarial findings** | Adversarial review outputs in git history | What logic bugs get through to the final gate |
+| **Adversarial findings** | Review outputs in git history | What logic bugs get through to the final gate |
 | **Test results** | `logs/tests.log` | Test failure patterns, what breaks repeatedly |
 | **Experiment logs** | `experiment-log.md` (ML projects) | What approaches were tried, what worked, what was wasted effort |
-| **Failure escalations** | Git history + commit messages referencing stuck/escalated subagents | What causes the skill to get stuck |
-| **Skill file changes** | `git log --since="LAST_EVOLVE_DATE" -- path/to/skill/` | What was manually changed outside evolve cycles |
+| **Failure escalations** | Git history + commit messages | What causes the skill to get stuck |
+| **Skill file changes** | `git log -- path/to/skill/` | What was manually changed outside evolve cycles |
+| **Wiki pages** | `wiki/` directory | Accumulated project understanding, decisions, patterns |
 
-### Harvest Command
+### Harvest Subagent
 
-The coordinator collects traces by spawning a harvest subagent:
-
+Spawn a harvest subagent:
 ```
 Collect all development traces from [project(s)] since [date/commit].
 
@@ -48,6 +48,7 @@ Collect all development traces from [project(s)] since [date/commit].
 3. Read experiment-log.md if present (ML projects)
 4. Search for Contract Changelog entries in committed files
 5. Run: git log --since="[date]" --stat -- [skill-path] for skill changes
+6. Read wiki/ directory for accumulated project context
 
 Output: A structured harvest report with sections:
 Contract Drift, Quality Patterns, Logic Findings,
@@ -60,8 +61,6 @@ Failure Modes, Process Friction.
 
 Classify harvested signals into actionable categories.
 
-### Pattern Categories
-
 | Category | Question | Example finding |
 |----------|----------|-----------------|
 | **Specification gaps** | What contracts changed mid-build? | "API response format changed 3/5 times → success criteria under-specify response shape" |
@@ -70,29 +69,6 @@ Classify harvested signals into actionable categories.
 | **Process friction** | What ceremony gets skipped or feels heavy? | "Contract changelogs empty in 80% of builds → either contracts don't change (good) or changes aren't logged (bad)" |
 | **Stuck patterns** | Where do subagents hit attempt 3? | "Implementation subagent stuck on async patterns → needs research subagent trigger for concurrency" |
 | **Test gaps** | What breaks in production that tests didn't catch? | "Edge cases with empty inputs missed in 3 projects → test prompt should mandate empty/null/boundary inputs" |
-
-### Pattern Analysis Prompt
-
-```
-Given this harvest report, identify patterns:
-
-1. SPECIFICATION PATTERNS — Do contract changelogs show systematic gaps
-   in how we define success criteria or contracts?
-2. DETECTION PATTERNS — Are certain bug types consistently caught late
-   (adversarial) vs early (tests/quality)? What should move earlier?
-3. PROCESS PATTERNS — Is ceremony being skipped? Is it because it's
-   unnecessary (Wu Wei: drop it) or because it's poorly prompted?
-4. FAILURE PATTERNS — Do stuck/escalated builds share common traits?
-
-For each pattern:
-  - Evidence: [specific traces]
-  - Frequency: [how often across builds]
-  - Impact: [what goes wrong when this pattern occurs]
-  - Root cause: [why does this happen — is it a prompt gap, a missing
-    step, a wrong assumption?]
-
-Rank by Impact ÷ Effort to fix.
-```
 
 ---
 
@@ -124,16 +100,16 @@ For each ranked pattern, propose a specific modification.
 
 ### User Approval Gate
 
-**STOP.** Present hypotheses ranked by Impact ÷ Effort. User approves which ones to apply. Never self-modify without approval.
+**STOP.** Present hypotheses ranked by Impact / Effort. User approves which ones to apply. Never self-modify without approval.
 
 ---
 
 ## Phase 4: Apply
 
-Apply approved modifications to skill files. This uses the skill's own build process:
+Apply approved modifications using the skill's own build process:
 
 1. **Success criteria** — For each hypothesis, define "done when" based on the predicted effect
-2. **Edit skill files** — Modify prompts, workflows, conventions per the approved hypotheses
+2. **Edit skill files** — Modify prompts, workflows, conventions per approved hypotheses
 3. **Quality check** — Run the skill's own self-checks on modified files
 4. **Commit** — Each hypothesis gets its own commit with the hypothesis as the commit message body
 
@@ -147,7 +123,7 @@ Apply approved modifications to skill files. This uses the skill's own build pro
 | Workflow phases | With user approval | Add/remove/reorder steps |
 | Integrity constraints | **Never** | These are foundational — user modifies directly |
 | Wu Wei filter | **Never** | Philosophy doesn't optimize, it guides |
-| Scripts (run-tests.sh etc.) | With user approval | Functional changes need explicit approval |
+| Scripts | With user approval | Functional changes need explicit approval |
 
 ---
 
@@ -155,17 +131,13 @@ Apply approved modifications to skill files. This uses the skill's own build pro
 
 Run the evolved skill on a real project and compare traces.
 
-### Validation Approaches
-
 | Approach | When | How |
 |----------|------|-----|
-| **Next natural project** | Default — evolve, then use normally | Compare traces from next 3-5 builds against harvest baseline |
-| **Replay** | When a specific failure pattern needs validation | Re-run a previous task with evolved skill, compare outcomes |
-| **Canary** | For risky changes | Apply to one project first, hold others on previous version |
+| **Next natural project** | Default | Compare traces from next 3-5 builds against harvest baseline |
+| **Replay** | Specific failure pattern | Re-run a previous task with evolved skill, compare outcomes |
+| **Canary** | Risky changes | Apply to one project first, hold others on previous version |
 
 ### Comparison Metrics
-
-Look for these in post-evolution traces:
 
 - **Contract changelog entries** — fewer = better specification upfront
 - **Adversarial CRITICAL findings** — fewer = better implementation quality
@@ -182,28 +154,16 @@ Maintain in the skill repo:
 
 ### Harvest scope
 - Projects: [list]
-- Projects/builds analyzed: [count]
+- Builds analyzed: [count]
 - Date range: [from] → [to]
 
 ### Patterns found
 1. [pattern] — Impact: [H/M/L], Effort: [H/M/L]
-2. ...
 
 ### Hypotheses applied
 1. [hypothesis name] — [target file] — [status: applied/deferred/rejected]
-2. ...
 
 ### Validation results (filled after 3-5 builds)
 - [metric]: [before] → [after]
 - Verdict: [keep/revert/refine]
-```
-
----
-
-## Quick Start
-
-```
-"Evolve the skill based on [project] builds"
-"Meta: analyze traces from the last 5 builds"
-"Self-improve: what patterns do you see in my recent builds?"
 ```

@@ -1,6 +1,6 @@
-# Design Workflow
+# Design Mode
 
-Transform ideas into development-ready specifications through iterative research and discussion. Loaded in **Design mode**.
+Transform ideas into development-ready specifications through iterative research and discussion.
 
 ---
 
@@ -23,6 +23,7 @@ Understand what the user wants to build, why, and what constraints exist.
 3. **Surface assumptions** — "I'm assuming [X], is that right?"
 4. **Identify unknowns** — "We'll need to research [Y] to answer this"
 5. **ML work: Reframe before solving** — If the task involves ML/CV/NLP, read `references/ml-heuristics.md` and apply the Problem Reframing questions. Challenge the first approach: "Does the spec actually require this, or are we assuming it?"
+6. **Greenfield library research** — If the design pulls in unfamiliar libraries, use `chub search "lib"` → `chub get <id>` for accurate API docs instead of guessing signatures. Annotate discoveries for future sessions.
 
 Output: shared mental model of the project. No documents yet.
 
@@ -41,11 +42,11 @@ Output: shared mental model of the project. No documents yet.
 
 ### Deploy Research Team
 
-YOU are the coordinator. Spawn research subagents using the Task tool for independent topics. Do NOT do all research yourself — parallel subagents save context and time.
+YOU are the coordinator. Spawn research subagents using the Agent tool for independent topics. Do NOT do all research yourself — parallel subagents save context and time.
 
 **Parallel** when topics are independent. **Sequential** when findings would redirect later research.
 
-Each subagent gets a specific question (not "research everything about X") and presents options with tradeoffs — no final decisions. Use `subagent_type: general-purpose` (or `Explore` for existing codebase investigation).
+Each subagent gets a specific question (not "research everything about X") and presents options with tradeoffs — no final decisions.
 
 **ML work:** Before researching solutions, apply `references/ml-heuristics.md` — Problem Reframing and Architecture Decisions. Often the right research question isn't "which model?" but "what simpler problem does this reduce to?"
 
@@ -73,52 +74,11 @@ CLAUDE.md must include: Overview (the "why"), Quick Start (3-5 commands), Archit
 
 ## Phase 4: Spec Adversarial Review
 
-**Before handoff to Build mode**, the spec gets a cold review. Same principle as code adversarial review — a subagent reads the spec with no context about the discussion that produced it.
+**Before handoff to Build mode**, the spec gets a cold review. A subagent reads the spec with no context about the discussion that produced it.
 
-**Spawn:** Agent tool with `subagent_type: general-purpose`
+Spawn an Agent with `subagent_type: general-purpose`. Provide ONLY the spec documents (success criteria, contracts, CLAUDE.md, data models). Do NOT provide conversation context, rationale, or "why we chose X."
 
-**Provide:** ONLY the spec documents (success criteria, contracts, CLAUDE.md, data models). Do NOT provide conversation context, rationale, or "why we chose X."
-
-**Prompt:**
-```
-You are a senior engineer handed a spec to implement. You have NO context
-about why decisions were made. Read the spec cold and answer:
-
-COMPLETENESS:
-- Can you build this without asking questions? If not, what's missing?
-- Are all success criteria binary and testable? Flag any that say "works well",
-  "handles gracefully", "is fast" — these are untestable.
-- Are error cases specified? What happens when inputs are invalid, services
-  are down, or data is missing?
-- Are edge cases called out? (empty inputs, boundary values, concurrent access,
-  large payloads)
-
-CONTRADICTIONS:
-- Do any requirements conflict with each other?
-- Do contracts match the success criteria? Any gaps?
-- Are there implicit assumptions that aren't stated?
-
-ARCHITECTURE:
-- Does the proposed approach match the problem scale? (over-engineered or
-  under-engineered?)
-- Are there simpler alternatives the spec doesn't consider?
-- What will be hardest to change later if requirements shift?
-- Any scalability concerns visible from the spec alone?
-
-MISSING UNKNOWNS:
-- What risks aren't addressed?
-- What third-party dependencies could block implementation?
-- What questions would you ask in a design review?
-
-For EACH finding:
-  - Section/criterion affected
-  - What you found
-  - Severity: CRITICAL (will block build or cause wrong product) /
-    WARNING (likely to cause rework) / ADVISORY (worth discussing)
-  - Suggested resolution (one sentence)
-
-If the spec is solid, say so — but be genuinely skeptical.
-```
+Read `references/subagent-briefs.md` for the spec adversarial review prompt template.
 
 **After review:**
 - **CRITICAL findings** → must resolve before handoff (update spec, discuss with user)
@@ -140,7 +100,5 @@ Planning is done when ALL of these are true:
 - [ ] You can **name the remaining unknowns** and they're acceptable risks, not blockers
 - [ ] Spec adversarial review has **no unresolved CRITICAL findings**
 - [ ] A stranger could read the spec and **build the right thing** without asking you questions
-
-The messy discussion that gets here is not a bug — it's the work. The exit gate is what matters, not the path.
 
 When complete: summarize what was produced, confirm with user, transition to Build mode using design artifacts as input.

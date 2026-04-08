@@ -1,30 +1,24 @@
-# Build Directives
+# Subagent Briefs
 
-How to spawn subagents using the Task tool for feature builds and complex implementations. These are imperatives, not suggestions.
-
-> **When the coordinator works directly**: Wiring, data prep, config, small fixes — subagent overhead exceeds value. Use subagent delegation for feature builds where test separation pays for itself.
-
----
-
-## Context Management
-
-Verbose commands (builds, installs, compiles) eat context. Use wrapper scripts to keep context clean:
-
-- **Verbose commands** → `bash {baseDir}/scripts/run-command.sh npm install` — full output to log file, JSON summary to stdout
-- **Test runs** → `bash {baseDir}/scripts/run-tests.sh tests/` — auto-detects runner (pytest/jest/go/cargo), returns JSON pass/fail
-- **Quick one-liners** (`mkdir`, `cp`, `mv`) → run directly, wrapper overhead not justified
-
-Both scripts accept optional `--log-dir DIR` to organize logs by session. Without it, logs go to the current directory.
+Prompt templates for each subagent type. The coordinator reads the relevant brief and passes ONLY that brief plus task-specific context to the subagent. Subagents never see the full skill.
 
 ---
 
 ## Research Subagent
 
-**When:** A builder reports unknowns, or you encounter unfamiliar domain/tech during scoping.
+**When:** Unknowns surface during scoping, or unfamiliar domain/tech encountered.
 
-**Spawn:** Task tool with `subagent_type: general-purpose`
+**Spawn:** Agent tool with `subagent_type: general-purpose`
 
-**Provide:** The specific question (not "research everything about X"), "Do NOT write implementation code. Present options with tradeoffs."
+**Provide:** The specific question (not "research everything about X"), expected output format.
+
+**Prompt constraints:**
+```
+Research: [specific question]
+
+Do NOT write implementation code. Present options with tradeoffs.
+If you find multiple viable approaches, compare them in a table.
+```
 
 For parallel research: spawn multiple subagents simultaneously in a single message.
 
@@ -36,7 +30,7 @@ For parallel research: spawn multiple subagents simultaneously in a single messa
 
 **Why tests first:** AI agents writing code AND tests together produce tests shaped to pass their code, not tests shaped to verify the contract.
 
-**Spawn:** Task tool with `subagent_type: general-purpose`
+**Spawn:** Agent tool with `subagent_type: general-purpose`
 
 **Provide:** Success criteria, contracts (if any), phase deliverables, target test directory, existing test patterns.
 
@@ -72,9 +66,9 @@ TEST NAMING — use contract-traceable names:
 
 **When:** After tests parse successfully. **Medium/heavy builds only** — skip for light builds.
 
-**Why:** Bad tests corrupt everything downstream. The test subagent interprets success criteria and writes tests — but its interpretation could miss business-critical paths, over-test implementation details, or misunderstand domain requirements. This agent reviews with business context but without the test-writing process.
+**Why:** Bad tests corrupt everything downstream. The test subagent's interpretation could miss business-critical paths, over-test implementation details, or misunderstand domain requirements.
 
-**Spawn:** Task tool with `subagent_type: general-purpose`
+**Spawn:** Agent tool with `subagent_type: general-purpose`
 
 **Provide:** Test file paths, success criteria, contracts (if any), business context/requirements. Do NOT provide the test subagent's process or reasoning.
 
@@ -115,15 +109,15 @@ For EACH finding:
 If tests are solid, say so — but be genuinely skeptical.
 ```
 
-**After:** CRITICAL findings → test subagent fixes before implementation proceeds. WARNING → coordinator decides (fix now or accept risk). ADVISORY → note for later.
+**After:** CRITICAL findings → test subagent fixes before implementation proceeds. WARNING → coordinator decides. ADVISORY → note for later.
 
 ---
 
 ## Implementation Subagent
 
-**When:** After tests are verified (they parse and fail as expected) and validated (medium/heavy).
+**When:** After tests are verified (parse and fail as expected) and validated (medium/heavy).
 
-**Spawn:** Task tool with `subagent_type: general-purpose`
+**Spawn:** Agent tool with `subagent_type: general-purpose`
 
 **Provide:** Contracts, test file paths ("These tests must pass"), phase deliverables, previous phase handoff (if exists), existing code patterns.
 
@@ -142,14 +136,10 @@ Write code that passes all tests while matching contracts.
 - On failure, read the log file for details instead of re-running commands
 ```
 
-**After:** Run tests yourself — do NOT trust subagent's reported output. If contract changes proposed, evaluate merit, then:
-
+**After:** Run tests yourself — do NOT trust subagent's reported output. If contract changes proposed:
 1. Update the contract document with the change
-2. Append to the `## Contract Changelog` section in success-criteria.md:
-   ```
-   - [PHASE-N] Changed: [what] → [what]. Reason: [why]. Approved by: user/coordinator.
-   ```
-3. If the change affects tests, re-run affected tests to confirm alignment
+2. Append to `## Contract Changelog`: `- [PHASE-N] Changed: [what] → [what]. Reason: [why]. Approved by: user/coordinator.`
+3. Re-run affected tests to confirm alignment
 
 Never silently modify contracts. The changelog IS the audit trail.
 
@@ -157,9 +147,9 @@ Never silently modify contracts. The changelog IS the audit trail.
 
 ## Verification Subagent
 
-**When:** After all tests pass for a phase. Combines audit + quality checks in one pass.
+**When:** After all tests pass for a phase.
 
-**Spawn:** Task tool with `subagent_type: general-purpose`
+**Spawn:** Agent tool with `subagent_type: general-purpose`
 
 **Provide:** Success criteria, contracts (if any), implementation file paths, test file paths.
 
@@ -203,13 +193,13 @@ Include quality scan JSON summary in report.
 
 ## Adversarial Review Subagent
 
-**When:** After verification passes. This is the final gate before delivery. Mandatory for medium/heavy weight builds. Skip for light (small fixes, config changes).
+**When:** After verification passes. Final gate before delivery. **Medium/heavy builds only.** Skip for light (small fixes, config).
 
-**Why:** The implementation subagent and verification subagent share the same model and similar context — they have correlated blind spots. The adversarial reviewer gets the code **cold**, without planning context, contracts, or rationale. It reads the code like a new developer would: "does this actually make sense?"
+**Why:** Implementation and verification subagents share similar context — they have correlated blind spots. The adversarial reviewer gets the code **cold**.
 
 **Spawn:** Agent tool with `subagent_type: general-purpose`
 
-**Provide:** ONLY the implementation file paths. Do NOT provide success criteria, contracts, design docs, or rationale. The reviewer must judge the code on its own merits.
+**Provide:** ONLY the implementation file paths. Do NOT provide success criteria, contracts, design docs, or rationale.
 
 **Prompt constraints:**
 ```
@@ -248,6 +238,57 @@ If you find nothing concerning, say so — but be genuinely skeptical.
 Do NOT rubber-stamp.
 ```
 
-**After:** Review findings. CRITICAL findings must be fixed before delivery (spawn implementation subagent with fix instructions). WARNING findings: present to user for decision. ADVISORY: include in handoff notes.
+**After:** CRITICAL findings must be fixed before delivery. WARNING: present to user. ADVISORY: include in handoff notes. If 3+ CRITICAL → systemic problem, STOP and escalate to user.
 
-**Escalation:** If adversarial reviewer finds 3+ CRITICAL issues, the build phase has systemic problems. STOP, report to user, do not patch individual findings.
+---
+
+## Spec Adversarial Review Subagent
+
+**When:** Before handoff from Design to Build mode. Skip for light builds.
+
+**Spawn:** Agent tool with `subagent_type: general-purpose`
+
+**Provide:** ONLY spec documents (success criteria, contracts, CLAUDE.md, data models). No conversation context or rationale.
+
+**Prompt constraints:**
+```
+You are a senior engineer handed a spec to implement. You have NO context
+about why decisions were made. Read the spec cold and answer:
+
+COMPLETENESS:
+- Can you build this without asking questions? If not, what's missing?
+- Are all success criteria binary and testable? Flag any that say "works well",
+  "handles gracefully", "is fast" — these are untestable.
+- Are error cases specified? What happens when inputs are invalid, services
+  are down, or data is missing?
+- Are edge cases called out? (empty inputs, boundary values, concurrent access,
+  large payloads)
+
+CONTRADICTIONS:
+- Do any requirements conflict with each other?
+- Do contracts match the success criteria? Any gaps?
+- Are there implicit assumptions that aren't stated?
+
+ARCHITECTURE:
+- Does the proposed approach match the problem scale? (over-engineered or
+  under-engineered?)
+- Are there simpler alternatives the spec doesn't consider?
+- What will be hardest to change later if requirements shift?
+- Any scalability concerns visible from the spec alone?
+
+MISSING UNKNOWNS:
+- What risks aren't addressed?
+- What third-party dependencies could block implementation?
+- What questions would you ask in a design review?
+
+For EACH finding:
+  - Section/criterion affected
+  - What you found
+  - Severity: CRITICAL (will block build or cause wrong product) /
+    WARNING (likely to cause rework) / ADVISORY (worth discussing)
+  - Suggested resolution (one sentence)
+
+If the spec is solid, say so — but be genuinely skeptical.
+```
+
+**After:** CRITICAL → must resolve before handoff. WARNING → user decides. ADVISORY → note in handoff. If 3+ CRITICAL → spec needs another iteration.
