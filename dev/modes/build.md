@@ -16,6 +16,23 @@ Feature builds via coordinated subagents with test-driven development. YOU are t
 
 ---
 
+## Phase 1.5: TDD Decision
+
+Not every change benefits from test-first development. Apply TDD when the value of catching regressions exceeds the cost of writing tests.
+
+| Signal | TDD? | Why |
+|--------|------|-----|
+| New behavior (endpoint, service, component) | YES | Tests define the contract |
+| Modifying existing behavior | YES | Tests catch regressions |
+| Deleting code / removing features | NO | Verify existing tests still pass |
+| Mechanical changes (add classes, rename across files) | NO | Build verification is sufficient |
+| Config changes | NO | Smoke test is sufficient |
+| Pure frontend UI (no logic) | NO | Visual verification, build check |
+
+When skipping TDD, state why. "Skipping TDD: deletion-only change, existing tests cover regression" is valid. Silence is not.
+
+---
+
 ## Phase 2: Align
 
 **Light (all projects):** Success criteria only — verifiable, binary, specific.
@@ -66,6 +83,19 @@ chub search "fastapi"          # Find available docs
 chub get fastapi/package       # Fetch curated API reference
 ```
 
+### When to Use Subagents vs Coordinator-Direct
+
+| Task Characteristics | Approach |
+|---------------------|----------|
+| Single file, <50 lines changed | Coordinator-direct |
+| Clear scope, no ambiguity | Coordinator-direct |
+| Multiple files, complex logic | Implementation subagent |
+| Needs isolation from main context | Subagent (protects context window) |
+| Parallel with other work | Subagent (background) |
+| Mechanical across many files | Structured edit pattern (see `references/subagent-briefs.md`) |
+
+Default: coordinator-direct unless there's a reason to delegate. Subagents cost context and coordination overhead — use them when the benefit (parallelism, isolation, specialization) exceeds the cost.
+
 ### Subagent Orchestration
 
 **Feature builds → subagents** (test separation pays for itself). **Wiring, data prep, config, small fixes → coordinator works directly.**
@@ -96,6 +126,19 @@ A separate subagent reviews the code **cold** — no planning context, no contra
 - **CRITICAL findings** → must fix before delivery
 - **3+ CRITICAL** → systemic problem, STOP and escalate to user
 - **Skip for**: light-weight tasks (small fixes, config, wiring)
+
+---
+
+## Gate Enforcement
+
+When a plan specifies gates (adversarial review, test validation, verification), they are NOT optional during execution.
+
+Before marking any item complete:
+1. Check what gates were planned
+2. Execute each planned gate
+3. If skipping a gate: state the reason explicitly ("Skipping adversarial: light-weight config change, 3 lines modified")
+
+The coordinator must not skip gates silently. Planned gates are promises to the user.
 
 ---
 

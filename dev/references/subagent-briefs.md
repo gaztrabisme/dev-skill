@@ -292,3 +292,20 @@ If the spec is solid, say so — but be genuinely skeptical.
 ```
 
 **After:** CRITICAL → must resolve before handoff. WARNING → user decides. ADVISORY → note in handoff. If 3+ CRITICAL → spec needs another iteration.
+
+---
+
+## Mechanical Edit Pattern
+
+**When:** The task is repetitive pattern application across many files (dark mode classes, rename, migration, i18n keys). The change is predictable and doesn't require reasoning about each file.
+
+**DO NOT spawn a reasoning agent.** Instead:
+
+1. Read 2-3 representative files to confirm the pattern
+2. Generate a structured edit list: `[{file, old, new}, ...]`
+3. Apply edits via Edit tool with `replace_all` where safe
+4. Verify with build/lint
+
+**Token budget:** ~1K per file (read + edit). A mechanical task touching 20 files should cost ~20K tokens, not 100K+ for a reasoning agent.
+
+**When it's NOT mechanical:** If each file needs different logic (conditional changes, context-dependent decisions), use a regular implementation subagent.
