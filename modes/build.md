@@ -59,6 +59,22 @@ When skipping TDD, state why. "Skipping TDD: deletion-only change, existing test
 
 **STOP for user approval before building.**
 
+### Criteria Concreteness Gate (pre-TDD)
+
+Before spawning the test subagent, run each success criterion through this litmus:
+
+| Question | Pass | Fail |
+|----------|------|------|
+| Can a stranger write a test from this criterion alone? | "Expired JWT returns 401 with `{error: 'token_expired'}`" | "Auth works" |
+| Does it name a specific input → output pair? | "Empty cart returns 200 with `{items: []}`" | "Handles edge cases" |
+| Would two engineers write the same test from it? | "Search with no results returns 200 + empty array" | "Search is fast" |
+
+**Any criterion that fails → pushback loop.** Apply `references/pushback-and-teach.md`: name the forks, present options, get a concrete answer. Two vague answers → stop and demand binary criteria before proceeding.
+
+**Escape hatch:** User explicitly says "shallow tests are fine here" → document which criteria are vague and proceed. The test subagent will produce what it can; the gap is acknowledged, not hidden.
+
+**When this gate is instant:** If criteria already read like test assertions (most concrete tasks), this adds zero overhead — you confirm they pass and move on.
+
 ---
 
 ## Phase 3: Build
