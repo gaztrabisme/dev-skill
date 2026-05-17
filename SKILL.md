@@ -62,6 +62,14 @@ On first entry to any mode, also read `references/pushback-and-teach.md`. It def
 
 ---
 
+## Production Thinking
+
+When building inference pipelines, deployment systems, or anything that will run unattended in production, consult `references/production-thinking.md`. It encodes the mental models a senior engineer uses reflexively — data movement awareness, graph-level optimization, systems interaction, scale projection, hardware constraints, and operational failure modes. Use the forcing questions deliberately until they become reflexive.
+
+**Peer to `ml-heuristics.md`:** ml-heuristics covers training and architecture decisions. production-thinking covers everything after "my model works" — the journey to reliable production.
+
+---
+
 ## Mode Detection
 
 | Trigger | Mode | Action |

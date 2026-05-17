@@ -211,6 +211,8 @@ Frameworks wrap layers of abstraction around computation kernels. For production
 
 ## Deployment
 
+> **Deep dive:** `references/production-thinking.md` covers the full post-training world — data movement, graph fusion, systems interaction, scale projection, hardware constraints, operational failures. This section covers the export basics; production-thinking covers everything else.
+
 ### Separate Training from Inference
 
 The training artifact is not the deployment artifact.
